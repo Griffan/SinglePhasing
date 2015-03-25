@@ -40,6 +40,8 @@ class Haplotyper
 
       int  phased, individuals, states, markers;
 
+      vector<int> phasedSample;//fan added on
+
       char ** genotypes;
       char ** haplotypes;
       float * thetas;

@@ -448,6 +448,88 @@ void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(String& fileName)
 		error(e.what());
 	}
 }
+void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(Pedigree &ped,String& fileName)
+{
+	//  if (rand == NULL)
+	//   rand = &globalRandom;
+
+	printf("starting LoadHaplotypesFromPhasedVCF\n");
+	bool warningsPrinted = false;
+	try {
+		VcfFile* pVcf = new VcfFile;
+		pVcf->bSiteOnly = false;
+		pVcf->bParseGenotypes = true;
+		pVcf->bParseDosages = false;
+		pVcf->bParseValues = false;
+
+		VcfMarker* pMarker = new VcfMarker;
+		//CalculatePhred2Prob();
+		pVcf->openForRead(fileName.c_str());
+		int nSamples = pVcf->getSampleCount();
+		if (nSamples == 0) {
+			throw VcfFileException("No individual genotype information exist in the input VCF file %s", fileName.c_str());
+		}
+
+		vector<int> personIndices(ped.count, -1);
+		StringIntHash originalPeople; // key: famid+subID, value: original order (0 based);
+		int person = 0;
+		for (int i = 0; i < nSamples; i++) {
+			originalPeople.Add(pVcf->vpVcfInds[i]->sIndID + "." + pVcf->vpVcfInds[i]->sIndID, person);
+			person++;
+		}
+
+		for (int i = 0; i < ped.count; i++) {
+			int idx = originalPeople.Integer(ped[i].famid + "." + ped[i].pid);
+			if (idx != -1)
+			{
+				personIndices[originalPeople.Integer(ped[i].famid + "." + ped[i].pid)] = i;
+			}
+		}
+
+		for (int j = 0; pVcf->iterateMarker(); ++j) {
+			//fprintf(stderr,"j=%d\n",j);
+			pMarker = pVcf->getLastMarker();
+			for (int i(0); i < nSamples; ++i) {//input of indivudals of phased vcf
+				//fprintf(stderr,"i=%d\n",j);
+				unsigned short g = pMarker->vnSampleGenotypes[i];
+				char g1, g2;
+
+				// genotype is missing
+				if (g == 0xffff) {
+					fprintf(stderr, "ERROR: Observed Missing genotypes");
+					abort();
+				}
+				else {
+					// genotype is unphased
+					if ((g & 0x8000) == 0) {
+						if (!warningsPrinted) {
+							fprintf(stderr, "ERROR: Observed unphased genotypes %x", g);
+							abort();
+						}
+					}
+					g1 = (((g & 0x7f00) >> 8) & 0xff);
+					g2 = (g & 0x7f);
+				}
+
+				if (pMarker->asAlts.Length() > 1) {
+					if (g1 == 0 || g2 == 0) {
+						fprintf(stderr, "ERROR: TriAllelic Site, but '0' genotype is observed");
+						abort();
+					}
+					--g1;
+					--g2;
+				}
+				haplotypes[personIndices[i]*2][j] = g1;
+				haplotypes[personIndices[i] * 2 + 1][j] = g2;
+			}
+		}
+		delete pVcf;
+		//delete pMarker;
+	}
+	catch (VcfFileException e) {
+		error(e.what());
+	}
+}
 void ShotgunHaplotyper::RandomSetup(Random * rand)
    {
    if (rand == NULL)

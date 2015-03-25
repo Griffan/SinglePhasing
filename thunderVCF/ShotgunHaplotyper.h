@@ -34,6 +34,7 @@ class ShotgunHaplotyper : public Haplotyper
       virtual void PhaseByReferenceSetup(Random * rand = NULL);
       virtual void LoadHaplotypesFromVCF(String& fileName);
 	  virtual void LoadHaplotypesFromPhasedVCF(String& fileName);
+	  virtual void LoadHaplotypesFromPhasedVCF(Pedigree &ped, String& fileName);
 	  //virtual void LoadPhasedHaplotypesFromVCF(String& fileName);
       virtual void ConditionOnData(float * matrix, int marker, 
                                    char phred11, char phred12, char phred22);

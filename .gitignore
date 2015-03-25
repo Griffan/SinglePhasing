@@ -25,3 +25,4 @@ SinglePhasing*
 *.Po
 
 thunderVCF/thunderVCF
+thunderVCF/bin/thunderVCF

@@ -771,7 +771,6 @@ void Haplotyper::ScoreLeftConditional()
 
    SetupPrior(leftMatrices[0]);
    ConditionOnData(leftMatrices[0], 0, genotypes[states / 2][0]);
-   //ConditionOnData(leftMatrices[0], 0, genotypes[individuals-1][0]);
 
    double theta = 0.0;
    float *from = leftMatrices[0];
@@ -1956,9 +1955,8 @@ void Haplotyper::SelectReferenceSet(int * array, int forWhom)
 
 void Haplotyper::LoopThroughChromosomes()
    {
-   //bool approximate = (states == individuals * 2 - 2) ? false : true;
-   bool approximate =  true;
-   states = 2 * phased;
+   bool approximate = (states == individuals * 2 - 2) ? false : true;
+
    ResetCrossovers();
 
    int * array = NULL;
@@ -1975,10 +1973,10 @@ void Haplotyper::LoopThroughChromosomes()
 
    for (int i = individuals - 1; i >= 0; i--)
       {
-      //SwapIndividuals(i, individuals - 1);
+      SwapIndividuals(i, individuals - 1);
 
-      //if (approximate)
-      //   SelectReferenceSet(array, i);
+      if (approximate)
+         SelectReferenceSet(array, i);
 
       if (weights != NULL)
          ScaleWeights();
@@ -1986,17 +1984,9 @@ void Haplotyper::LoopThroughChromosomes()
       if (updateDiseaseScores)
          ScoreNPL();
 
-      if (i < individuals - phased)//unphased
+      //if (i < individuals - phased)
+      if(phasedSample[i]==-1)//unphased sample
          {
-		  /*cut following two parts into if*/
-		  SwapIndividuals(i, individuals - 1);
-
-		  if (approximate)
-		  {
-			  greedy = 1;
-			  SelectReferenceSet(array, i);
-		  }
-
          ScoreLeftConditional();
          SampleChromosomes(&globalRandom);
 
@@ -2009,31 +1999,24 @@ void Haplotyper::LoopThroughChromosomes()
             printf("\nProblems above occurred haplotyping individual %d\n\n", i);
             Print();
             }
-
 #endif
-		 if (approximate)
-			 for (int j = individuals - 1, out = states / 2; j >= 0; j--)
-				 if (array[j])
-					 SwapIndividuals(j, out--);
-		 SwapIndividuals(i, individuals - 1);
          }
-	  /*if this individual is phased then next individual*/
-      //else
-      //   {
-      //   ScoreLeftConditionalForHaplotype();
-      //   SampleHaplotypeSource(&globalRandom);
-      //   SwapHaplotypes(states, states + 1);//we put the unphased sample at the end of the matrix
-      //   ScoreLeftConditionalForHaplotype();
-      //   SampleHaplotypeSource(&globalRandom);
-      //   SwapHaplotypes(states, states + 1);
-      //   }
+      else
+         {
+         ScoreLeftConditionalForHaplotype();
+         SampleHaplotypeSource(&globalRandom);
+         SwapHaplotypes(states, states + 1);
+         ScoreLeftConditionalForHaplotype();
+         SampleHaplotypeSource(&globalRandom);
+         SwapHaplotypes(states, states + 1);
+         }
 
-	  //if (approximate)
-		 // for (int j = individuals - 1, out = states / 2; j >= 0; j--)
-			//  if (array[j])
-			//	  SwapIndividuals(j, out--);
+      if (approximate)
+         for (int j = individuals - 1, out = states / 2; j >= 0; j--)
+            if (array[j])
+               SwapIndividuals(j, out--);
 
-      //SwapIndividuals(i, individuals - 1);
+      SwapIndividuals(i, individuals - 1);
       }
 
    if (approximate)

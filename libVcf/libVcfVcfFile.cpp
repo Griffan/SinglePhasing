@@ -582,7 +582,7 @@ void VcfMarker::setInfo(const String& s, bool upgrade, bool updateAC) {
     }
     return;
   }
-
+  //fprintf(stderr,"looking new line:\n");
   tmpTokens.ReplaceColumns(s, ';');
 
   if ( tmpTokens.Length() != asInfoKeys.Length() ) {
@@ -616,7 +616,8 @@ void VcfMarker::setInfo(const String& s, bool upgrade, bool updateAC) {
 	asInfoValues[i] = "";
       }
       else {
-	if ( strncmp(tmpTokens[i].c_str(),asInfoKeys[i].c_str(),equalsPos-1) != 0 )  {
+		 // fprintf(stderr, "compare %s:%s\t", tmpTokens[i].c_str(), asInfoKeys[i].c_str());
+	if ( strncmp(tmpTokens[i].c_str(),asInfoKeys[i].c_str(),equalsPos) != 0 )  {// BUG!!!!!!!equalsPos should not minus 1
 	  bPreserved = false;
 	  asInfoKeys[i] = tmpTokens[i].Mid(0,equalsPos-1);
 	}
@@ -624,7 +625,7 @@ void VcfMarker::setInfo(const String& s, bool upgrade, bool updateAC) {
       }
     }
   }
-
+  //fprintf(stderr, "end looking new line:\n");
   // upgrade INFO field entries from glfMultiples 06/16/2010 (VCFv3.3) to VCFv4.0 format
   if ( upgrade ) {
     if ( asInfoKeys[0].Compare("depth") == 0 ) {

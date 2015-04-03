@@ -279,7 +279,7 @@ void UnphasedSamplesOutputVCF(const String& inVcf, Pedigree & ped, DosageCalcula
 				exit(-1);
 			}
 			else {
-				//fprintf(stderr,"Found (%s,%d)\n", pVcf->vpVcfInds[i]->sIndID.c_str(), found->second);
+				fprintf(stderr,"Found (%s,%d)\n", pVcf->vpVcfInds[i]->sIndID.c_str(), found->second);
 				vcf2ped.push_back(found->second);
 				/*haplotypes[found->second * 2] = engine.haplotypes[found->second * 2];
 				haplotypes[found->second * 2 + 1] = engine.haplotypes[found->second * 2 + 1];*/
@@ -682,7 +682,7 @@ void LoadGenotypeFromPhasedVcf(Pedigree &ped, char** genotypes, char* refalleles
 		if (pVcf->getSampleCount() == 0) {
 			throw VcfFileException("No individual genotype information exist in the input VCF file %s", filename.c_str());
 		}
-		vector<int> unphaseIdx;
+		vector<int> unphaseIdx(ped.count, -1);
 		int nSamples = pVcf->getSampleCount();
 		int unphased = nSamples - phased;
 		vector<int> personIndices(ped.count, -1);
@@ -697,14 +697,15 @@ void LoadGenotypeFromPhasedVcf(Pedigree &ped, char** genotypes, char* refalleles
 			int idx = originalPeople.Integer(ped[i].famid + "." + ped[i].pid);
 			if (idx == -1)//not phased
 			{
-				unphaseIdx.push_back(i);
+				unphaseIdx[i]=1;
 			}
 			else//phased in this vcf
 			{
 				personIndices[originalPeople.Integer(ped[i].famid + "." + ped[i].pid)] = i;
+
 			}
 		}
-		engine.phasedSample = personIndices;//-1 means unphased
+		engine.phasedSample = unphaseIdx;//1 means unphased
 		int markerindex = 0;
 
 		//printf("starting LoadPolymorphicSites\n\n");
@@ -858,7 +859,7 @@ int main(int argc, char ** argv)
 
 	double errorRate = 0.01;
 	double transRate = 0.01;
-	int seed = 123456, warmup = 0, states = 0, weightedStates = 0;
+	int seed = 1123456, warmup = 0, states = 0, weightedStates = 0;
 	int burnin = 0, rounds = 0, polling = 0, samples = 0;
 	int maxPhred = 255;
 	bool compact = false;

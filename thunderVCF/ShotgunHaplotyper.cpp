@@ -758,6 +758,7 @@ void ShotgunHaplotyper::ImputeAlleles(int marker, int state1, int state2, Random
    {
    int copied1 = haplotypes[state1][marker];
    int copied2 = haplotypes[state2][marker];
+	//fprintf(stdout,"marker %d copied genotype: %d|%d\t",marker,copied1,copied2);
 
    int markerindex = marker * 3;
    int ph11 = (unsigned char) genotypes[states / 2][markerindex];
@@ -777,17 +778,18 @@ void ShotgunHaplotyper::ImputeAlleles(int marker, int state1, int state2, Random
    double r = rand->Next();
 
    if (r < posterior_11)
-      {
+      { //fprintf(stdout,"from 00\t");
       haplotypes[states][marker] = 0;
       haplotypes[states + 1][marker] = 0;
       }
    else if (r < posterior_11 + posterior_22)
-      {
+      {//fprintf(stdout,"from 11\t");
       haplotypes[states][marker] = 1;
       haplotypes[states + 1][marker] = 1;
       }
    else if (copied1 != copied2)
       {
+	      //fprintf(stdout,"from 01\t");
       double rate = GetErrorRate(marker);
 
       if (rand->Next() < rate * rate / ((rate * rate) + (1.0 - rate) * (1.0 - rate)))
@@ -801,6 +803,7 @@ void ShotgunHaplotyper::ImputeAlleles(int marker, int state1, int state2, Random
       }
    else
       {
+	      //fprintf(stdout,"from else\t");
       bool bit = rand->Binary();
 
       haplotypes[states][marker] = bit;
@@ -809,7 +812,7 @@ void ShotgunHaplotyper::ImputeAlleles(int marker, int state1, int state2, Random
 
    int imputed1 = haplotypes[states][marker];
    int imputed2 = haplotypes[states + 1][marker];
-
+	//fprintf(stdout,"imputed genotype: %d|%d\n",imputed1,imputed2);
    //int differences = abs(copied1 - imputed1) + abs(copied2 - imputed2);
    int differences = abs(copied1 + copied2 - imputed1 - imputed2);
 
@@ -1007,7 +1010,7 @@ void ShotgunHaplotyper::SampleChromosomes(Random * rand)
 
    for (int j = markers - 2; j >= 0; j--)
       {
-      // printf("Sum: %f, Chose (%d,%d)\n", sum, first, second);
+      printf("Sum: %f, Chose (%d,%d)\n", sum, first, second);
 
       ImputeAlleles(j + 1, first, second, rand);
 
@@ -1209,6 +1212,7 @@ bool ShotgunHaplotyper::ForceMemoryAllocation()
 
 
 void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom) {
+//	fprintf(stderr,"I am using SelectReferenceSet method from ShotgunHaplotyper!\n");
   if (greedy)
     {
       // Sanity check
@@ -1249,7 +1253,12 @@ void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom) {
   }
 
   // Swap reference set into position
+  //fprintf(stderr,"array:");
   for (int j = 0, out = 0; j < individuals; j++)
+  {
+//	  fprintf(stderr,"%d",array[j]);
     if (array[j])
       SwapIndividuals(j, out++);
+  }
+  //fprintf(stderr,"\n");
 }

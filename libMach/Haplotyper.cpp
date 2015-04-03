@@ -1921,7 +1921,7 @@ void Haplotyper::ScaleWeights()
 
 void Haplotyper::SelectReferenceSet(int * array, int forWhom)
    {
-     //fprintf(stderr,"Haplotyper::SelectReferenceSet() called\n");
+     fprintf(stderr,"Haplotyper::SelectReferenceSet() called\n");
    if (greedy)
       {
       // Sanity check
@@ -1985,8 +1985,13 @@ void Haplotyper::LoopThroughChromosomes()
          ScoreNPL();
 
       //if (i < individuals - phased)
-      if(phasedSample[i]==-1)//unphased sample
+      if(phasedSample[i]==1)//unphased sample
          {
+		 fprintf(stderr,"array:");
+	for(int k=0;k!=individuals-1;++k)
+		fprintf(stderr,"%d",array[k]);
+	fprintf(stderr,"\n");
+	fprintf(stderr,"the sample is number:%d\n",i);
          ScoreLeftConditional();
          SampleChromosomes(&globalRandom);
 

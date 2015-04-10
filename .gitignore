@@ -26,3 +26,5 @@ SinglePhasing*
 
 thunderVCF/thunderVCF
 thunderVCF/bin/thunderVCF
+libMach
+libStatGen

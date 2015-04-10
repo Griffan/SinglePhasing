@@ -822,6 +822,7 @@ void LoadGenotypeFromPhasedVcf(Pedigree &ped, char** genotypes, char* refalleles
 				int genoindex = markerindex * 3;
 				for (int i = 0; i < unphaseIdx.size(); i++)//for each unphased individual
 				{
+					if(unphaseIdx[i]==-1) continue;
 					//phred.ReplaceTokens(pMarker->asSampleValues[PLidx + i*formatLength], ",");
 					int phred11 = 0;// GLflag ? static_cast<int>(-10. * phred[idx11].AsDouble()) : phred[idx11].AsInteger();
 					int phred12 = 0;// GLflag ? static_cast<int>(-10. * phred[idx12].AsDouble()) : phred[idx12].AsInteger();

@@ -203,3 +203,12 @@ void ConsensusBuilder::EstimateMemoryInfo(int Samples, int Haplotypes, int Marke
    printf("   %40s %s\n", "Consensus builder ...", (const char *) MemoryInfo(bytes));
    }
  
+void ConsensusBuilder::Swap(char * & array1, char * & array2)
+{
+	char * temp = array1; array1 = array2; array2 = temp;
+}
+void ConsensusBuilder::SwapHap(int a, int b)
+{
+	Swap(sampledHaplotypes[a * 2], sampledHaplotypes[b * 2]);
+	Swap(sampledHaplotypes[a * 2 + 1], sampledHaplotypes[b * 2 + 1]);
+}

@@ -1010,7 +1010,7 @@ void ShotgunHaplotyper::SampleChromosomes(Random * rand)
 
    for (int j = markers - 2; j >= 0; j--)
       {
-      printf("Sum: %f, Chose (%d,%d)\n", sum, first, second);
+      //printf("Sum: %f, Chose (%d,%d)\n", sum, first, second);
 
       ImputeAlleles(j + 1, first, second, rand);
 

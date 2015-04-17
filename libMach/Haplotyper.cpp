@@ -2062,9 +2062,7 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTime
 			for (int j = 0; j != SampleTimes; ++j)
 			{
 				SampleChromosomes(&globalRandom);
-				SwapIndividuals(i, individuals - 1);
 				Builder.Store(haplotypes);
-				SwapIndividuals(i, individuals - 1);
 			}
 
 			if (updateDiseaseScores && diseaseCount)
@@ -2091,9 +2089,13 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTime
 		if (approximate)
 			for (int j = individuals - 1, out = states / 2; j >= 0; j--)
 				if (array[j])
+				{
+					Builder.SwapHap(j,out);
 					SwapIndividuals(j, out--);
+				}
 
 		SwapIndividuals(i, individuals - 1);
+		Builder.SwapHap(i, individuals - 1);
 	}
 
 	if (approximate)

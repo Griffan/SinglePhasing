@@ -209,6 +209,9 @@ void ConsensusBuilder::Swap(char * & array1, char * & array2)
 }
 void ConsensusBuilder::SwapHap(int a, int b)
 {
-	Swap(sampledHaplotypes[a * 2], sampledHaplotypes[b * 2]);
-	Swap(sampledHaplotypes[a * 2 + 1], sampledHaplotypes[b * 2 + 1]);
+	for (int i = 0; i != stored; ++i)
+	{
+		Swap(sampledHaplotypes[i][a * 2], sampledHaplotypes[i][b * 2]);
+		Swap(sampledHaplotypes[i][a * 2 + 1], sampledHaplotypes[i][b * 2 + 1]);
+	}
 }

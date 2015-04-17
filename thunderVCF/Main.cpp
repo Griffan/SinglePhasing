@@ -1348,7 +1348,7 @@ int main(int argc, char ** argv)
 
 	if (consensus.readyForUse == false)
 		return MemoryAllocationFailure();
-
+	
 	DosageCalculator::storeDistribution = OutputManager::outputDosage ||
 		OutputManager::outputQuality ||
 		OutputManager::outputGenotypes;

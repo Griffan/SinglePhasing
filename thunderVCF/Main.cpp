@@ -1459,9 +1459,9 @@ int main(int argc, char ** argv)
 	//	OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".vcf.gz", thetas, error_rates);
 	//OutputManager::OutputConsensus(ped, consensus, doses, outfile);
 	//else
-	if (OutputManager::outputHaplotypes)
-		OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
-	else
+	//if (OutputManager::outputHaplotypes)
+	//	OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
+	//else
 	{
 		UnphasedSamplesOutputVCF(shotgunfile, ped, doses, outfile + ".vcf.gz", thetas, error_rates, engine);
 		OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".consensus.vcf.gz", thetas, error_rates);

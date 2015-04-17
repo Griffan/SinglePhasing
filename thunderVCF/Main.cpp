@@ -852,16 +852,325 @@ void LoadGenotypeFromPhasedVcf(Pedigree &ped, char** genotypes, char* refalleles
 		error(e.what());
 	}
 }
-
+////without consensus
+//int main(int argc, char ** argv)
+//{
+//	String shotgunfile, mapfile, outfile("mach1.out"),phasedfile;
+//	String crossFile, errorFile;
+//
+//	double errorRate = 0.01;
+//	double transRate = 0.01;
+//	int seed = 1123456, warmup = 0, states = 0, weightedStates = 0;
+//	int burnin = 0, rounds = 0, polling = 0, samples = 0;
+//	int maxPhred = 255;
+//	bool compact = false;
+//	bool mle = false, mledetails = false, uncompressed = false;
+//	bool inputPhased = false;
+//	bool phaseByRef = false;
+//	bool randomPhase = true;
+//	bool fixTrans = false;
+//
+//	SetupCrashHandlers();
+//	SetCrashExplanation("reading command line options");
+//
+//	printf("Thunder_Glf 1.0.9 -- Markov Chain Haplotyping for Shotgun Sequence Data\n"
+//		"(c) 2005-2007 Goncalo Abecasis, Yun Li, with thanks to Paul Scheet\n\n");
+//
+//	ParameterList pl;
+//
+//	BEGIN_LONG_PARAMETERS(longParameters)
+//		LONG_PARAMETER_GROUP("Shotgun Sequences")
+//		LONG_STRINGPARAMETER("unphasedVcf", &shotgunfile)
+//		LONG_STRINGPARAMETER("refVcf", &phasedfile)
+//		LONG_INTPARAMETER("maxPhred", &maxPhred)
+//		LONG_PARAMETER_GROUP("Optional Files")
+//		LONG_STRINGPARAMETER("crossoverMap", &crossFile)
+//		LONG_STRINGPARAMETER("errorMap", &errorFile)
+//		LONG_STRINGPARAMETER("physicalMap", &mapfile)
+//		LONG_PARAMETER_GROUP("Markov Sampler")
+//		LONG_INTPARAMETER("seed", &seed)
+//		LONG_INTPARAMETER("burnin", &burnin)
+//		LONG_INTPARAMETER("rounds", &rounds)
+//		LONG_PARAMETER_GROUP("Haplotyper")
+//		LONG_INTPARAMETER("states", &states)
+//		LONG_DOUBLEPARAMETER("errorRate", &errorRate)
+//		LONG_DOUBLEPARAMETER("transRate", &transRate)
+//		LONG_INTPARAMETER("weightedStates", &weightedStates)
+//		LONG_PARAMETER("compact", &compact)
+//		LONG_PARAMETER("fixTrans", &fixTrans)
+//		LONG_PARAMETER_GROUP("Phasing")
+//		EXCLUSIVE_PARAMETER("randomPhase", &randomPhase)
+//		EXCLUSIVE_PARAMETER("inputPhased", &inputPhased)
+//		EXCLUSIVE_PARAMETER("refPhased", &phaseByRef)
+//		LONG_PARAMETER_GROUP("Imputation")
+//		LONG_PARAMETER("geno", &OutputManager::outputGenotypes)
+//		LONG_PARAMETER("quality", &OutputManager::outputQuality)
+//		LONG_PARAMETER("dosage", &OutputManager::outputDosage)
+//		LONG_PARAMETER("probs", &OutputManager::outputProbabilities)
+//		LONG_PARAMETER("mle", &mle)
+//		LONG_PARAMETER_GROUP("Output Files")
+//		LONG_STRINGPARAMETER("prefix", &outfile)
+//		LONG_PARAMETER("phase", &OutputManager::outputHaplotypes)
+//		LONG_PARAMETER("uncompressed", &OutputManager::uncompressed)
+//		LONG_PARAMETER("mldetails", &mledetails)
+//		LONG_PARAMETER_GROUP("Interim Output")
+//		LONG_INTPARAMETER("sampleInterval", &samples)
+//		LONG_INTPARAMETER("interimInterval", &polling)
+//		END_LONG_PARAMETERS();
+//
+//	pl.Add(new LongParameters("Available Options", longParameters));
+//
+//	pl.Add(new HiddenString('m', "Map File", mapfile));
+//	pl.Add(new HiddenString('o', "Output File", outfile));
+//	pl.Add(new HiddenInteger('r', "Haplotyping Rounds", rounds));
+//	pl.Add(new HiddenDouble('e', "Error Rate", errorRate));
+//
+//	pl.Read(argc, argv);
+//	pl.Status();
+//
+//	if (OutputManager::outputDosage == false) { // hmkang 
+//		error("--dosage flag must be set in this implementation");
+//	}
+//
+//	// Setup random seed ...
+//	globalRandom.Reset(seed);
+//
+//	SetCrashExplanation("loading information on polymorphic sites");
+//
+//	// Setup and load a list of polymorphic sites, each with two allele labels ...
+//	Pedigree ped;
+//
+//	SetCrashExplanation("loading shotgun data - first pass");
+//	/*We add unphased samples first*/
+//	int numPhased = 0;
+//	LoadShotgunSamples(ped, shotgunfile);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
+//	numPhased = ped.count;
+//	/*now loading phased individuals*/
+//	LoadShotgunSamples(ped, phasedfile);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
+//	numPhased = ped.count - numPhased;
+//	/*Notice that now we adding markers as subset of phased markers*/
+//	LoadPolymorphicSites(phasedfile);// here only extracted site information only, used for site check
+//
+//	LoadUnphasedPolymorphicSites(shotgunfile);
+//
+//
+//	SetCrashExplanation("loading map information for polymorphic sites");
+//
+//	printf("Loaded information on %d polymorphic sites\n\n", Pedigree::markerCount);
+//
+//	Pedigree::LoadMarkerMap(mapfile);//the format of mapfiles is:	chrome\tmarker_name\tposition
+//
+//	// Check if physical map is available
+//	bool positionsAvailable = true;
+//
+//	for (int i = 0; i < ped.markerCount; i++)
+//		if (Pedigree::GetMarkerInfo(i)->chromosome < 0)
+//		{
+//		positionsAvailable = false;//no physical map available
+//		break;
+//		}
+//
+//	if (positionsAvailable)
+//	{
+//		printf("    Physical map will be used to improve crossover rate estimates.\n");
+//
+//		for (int i = 1; i < ped.markerCount; i++)
+//			if (ped.GetMarkerInfo(i)->position <= ped.GetMarkerInfo(i - 1)->position ||
+//				ped.GetMarkerInfo(i)->chromosome != ped.GetMarkerInfo(i - 1)->chromosome)
+//			{
+//			printf("    FATAL ERROR -- Problems with physical map ...\n\n"
+//				"    Before continuing, check the following:\n"
+//				"    * All markers are on the same chromosome\n"
+//				"    * All marker positions are unique\n"
+//				"    * Markers in pedigree and haplotype files are ordered by physical position\n\n");
+//			return -1;
+//			}
+//	}
+//
+//	printf("\n");
+//
+//	printf("Processing input files and allocating memory for haplotyping\n");
+//
+//	SetCrashExplanation("allocating memory for haplotype engine and consensus builder");
+//
+//	ShotgunHaplotyper engine;//declaration of engine, also will call default constructor
+//
+//	engine.economyMode = compact;//
+//
+//	engine.EstimateMemoryInfo(ped.count, ped.markerCount, states, compact, false);
+//	engine.AllocateMemory(ped.count, states, ped.markerCount, (float)transRate);
+//	
+//	printf("Copy unphased genotypes into haplotyping engine\n");
+//	// Copy genotypes into haplotyping engine
+//	if (engine.readyForUse)
+//		LoadShotgunResults(ped, engine.genotypes, /*engine.refalleles, engine.freq1s, */shotgunfile, maxPhred, numPhased);//this is where thunder copy GL into genotype arrays.helpful for understand genotype datastructre.
+//
+//	printf("Done loading shotgun file\n\n");
+//	// Copy phased haplotypes into haplotyping engine, but we put phased haps in the end
+//	engine.phased = numPhased;
+//	printf("Copy phased genotypes into haplotyping engine\n");
+//	if (engine.readyForUse)
+//		LoadGenotypeFromPhasedVcf(ped, engine.genotypes, engine.refalleles, engine.freq1s, phasedfile, maxPhred, numPhased, engine,errorRate,transRate);//this is where thunder copy GL into genotype arrays.helpful for understand genotype datastructre.
+//
+//
+//
+//	if (engine.readyForUse == false || engine.ForceMemoryAllocation() == false)
+//		return MemoryAllocationFailure();//check error
+//
+//	if (positionsAvailable && engine.AllocateDistances())//it is interesting to notice that there are two position information sources, one is from VCF the other is from markerMap
+//	{
+//		for (int i = 1; i < ped.markerCount; i++)//here the distance is based on markerMap file 
+//			engine.distances[i - 1] = ped.GetMarkerInfo(i)->position -
+//			ped.GetMarkerInfo(i - 1)->position;
+//	}
+//
+//	engine.ShowMemoryInfo();
+//
+//	if (mle)//not sure 
+//	{
+//		engine.ShowMLEMemoryInfo();
+//		if (!engine.AllocateMLEMemory())
+//			return MemoryAllocationFailure();
+//	}
+//
+//	//ConsensusBuilder::EstimateMemoryInfo(rounds - burnin, ped.count * 2, ped.markerCount);
+//	//ConsensusBuilder consensus(rounds - burnin, ped.count * 2, ped.markerCount);
+//
+//	//if (consensus.readyForUse == false)
+//	//	return MemoryAllocationFailure();
+//
+//	DosageCalculator::storeDistribution = OutputManager::outputDosage ||
+//		OutputManager::outputQuality ||
+//		OutputManager::outputGenotypes;
+//
+//	//DosageCalculator::EstimateMemoryInfo(rounds - burnin, ped.count, ped.markerCount);
+//	DosageCalculator::EstimateMemoryInfo(1, ped.count, ped.markerCount);
+//	//DosageCalculator doses(rounds - burnin, ped.count, ped.markerCount);
+//	DosageCalculator doses(1, ped.count, ped.markerCount);
+//
+//	if (doses.readyForUse == false)
+//		return MemoryAllocationFailure();
+//
+//	if (states < weightedStates) {
+//		error("Total number of states (--states) must be equal or greater than the total number of weighted states (--weightStates)");
+//	}
+//	engine.weightedStates = weightedStates;
+//
+//	printf("Memory allocated successfully\n\n");
+//
+//	SetCrashExplanation("loading error rate and cross over maps");
+//
+//	////engine.SetErrorRate(errorRate);
+//	//UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
+//	//UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
+//
+//	bool newline = engine.LoadCrossoverRates(crossFile);
+//	newline |= engine.LoadErrorRates(errorFile);
+//	if (newline) printf("\n");
+//
+//	//engine.SetErrorRate(errorRate);
+//	UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
+//	UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
+//
+//	SetCrashExplanation("searching for initial haplotype set");
+//
+//	if (inputPhased) {
+//		printf("Loading phased information from the input VCF file\n\n");
+//		engine.LoadHaplotypesFromVCF(shotgunfile);
+//	}
+//	else if (phaseByRef) {
+//		printf("Assigning haplotypes based on reference genome\n\n");
+//		engine.PhaseByReferenceSetup();
+//	}
+//	else {
+//		printf("Assigning random set of haplotypes\n\n");
+//		engine.RandomSetup();
+//	}
+//	printf("Found initial haplotype set\n\n");
+//	//OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
+//	//return 0;
+//	engine.LoadHaplotypesFromPhasedVCF(ped,phasedfile);
+//
+//	SetCrashExplanation("revving up haplotyping engine");
+//
+//	SetCrashExplanation("interating through markov chain haplotyping procedure");
+//
+//	//for (int i = 0; i < rounds; i++)
+//	//{
+//		engine.LoopThroughChromosomes();
+//		if (!fixTrans) engine.UpdateThetas();
+//		errorRate = engine.UpdateErrorRate();
+//
+//		//printf("Markov Chain iteration %d [%d mosaic crossovers]\n",
+//		//	i + 1, engine.TotalCrossovers());
+//
+//		//if (i < burnin)
+//		//	continue;
+//
+//		//if (OutputManager::outputHaplotypes)
+//		//	consensus.Store(engine.haplotypes);
+//
+//		if (doses.storeDosage || doses.storeDistribution)
+//			doses.Update(engine.haplotypes);
+//
+//		UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
+//		UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
+//
+//	//	//if (polling > 0 && ((i - burnin) % polling) == 0) {
+//	//	int i = 0;// adjust for following code
+//	//		OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".prelim" + (i + 1) + ".vcf.gz", thetas, error_rates);
+//	//		OutputManager::OutputConsensus(ped, consensus, doses, outfile + ".prelim" + (i + 1));
+//	//	//}
+//
+//	//	//if (samples > 0 && ((i - burnin) % samples) == 0)
+//	//		OutputManager::WriteHaplotypes(outfile + ".sample" + (i + 1) + ".gz", ped, engine.haplotypes);
+//
+//	////}
+//
+//	if (rounds) printf("\n");
+//
+//	SetCrashExplanation("estimating maximum likelihood solution, conditional on current state");
+//
+//	if (mle)
+//	{
+//		// Use best available error and crossover rates for MLE
+//		if (nerror_rates)
+//			for (int i = 0; i < engine.markers; i++)
+//				engine.SetErrorRate(i, error_rates[i] / nerror_rates);
+//
+//		if (nthetas)
+//			for (int i = 0; i < engine.markers - 1; i++)
+//				engine.thetas[i] = thetas[i] / nthetas;
+//
+//		engine.OutputMLEs(ped, outfile, mledetails);
+//	}
+//
+//	//   ParseHaplotypes(engine.haplotypes, engine.individuals * 2 - 2, engine.markers, 32);
+//
+//	SetCrashExplanation("outputing solution");
+//	fprintf(stderr,"%d %d\n",ped.count,ped.markerCount);
+//	// If we did multiple rounds of haplotyping, then generate consensus
+//	//if (rounds > 1)
+//	//	OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".vcf.gz", thetas, error_rates);
+//	//OutputManager::OutputConsensus(ped, consensus, doses, outfile);
+//	//else
+//	if (OutputManager::outputHaplotypes)
+//		OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
+//	else
+//		UnphasedSamplesOutputVCF(shotgunfile, ped, doses, outfile + ".vcf.gz", thetas, error_rates, engine);
+//
+//	printf("Estimated mismatch rate in Markov model is: %.5f\n", errorRate);
+//}
+//withconsensus
 int main(int argc, char ** argv)
 {
-	String shotgunfile, mapfile, outfile("mach1.out"),phasedfile;
+	String shotgunfile, mapfile, outfile("mach1.out"), phasedfile;
 	String crossFile, errorFile;
 
 	double errorRate = 0.01;
 	double transRate = 0.01;
 	int seed = 1123456, warmup = 0, states = 0, weightedStates = 0;
-	int burnin = 0, rounds = 0, polling = 0, samples = 0;
+	int burnin = 0, rounds = 0, polling = 0, samples = 0, SamplingRounds=0;
 	int maxPhred = 255;
 	bool compact = false;
 	bool mle = false, mledetails = false, uncompressed = false;
@@ -891,6 +1200,7 @@ int main(int argc, char ** argv)
 		LONG_INTPARAMETER("seed", &seed)
 		LONG_INTPARAMETER("burnin", &burnin)
 		LONG_INTPARAMETER("rounds", &rounds)
+		LONG_INTPARAMETER("SamplingRounds", &SamplingRounds)
 		LONG_PARAMETER_GROUP("Haplotyper")
 		LONG_INTPARAMETER("states", &states)
 		LONG_DOUBLEPARAMETER("errorRate", &errorRate)
@@ -999,7 +1309,7 @@ int main(int argc, char ** argv)
 
 	engine.EstimateMemoryInfo(ped.count, ped.markerCount, states, compact, false);
 	engine.AllocateMemory(ped.count, states, ped.markerCount, (float)transRate);
-	
+
 	printf("Copy unphased genotypes into haplotyping engine\n");
 	// Copy genotypes into haplotyping engine
 	if (engine.readyForUse)
@@ -1010,7 +1320,7 @@ int main(int argc, char ** argv)
 	engine.phased = numPhased;
 	printf("Copy phased genotypes into haplotyping engine\n");
 	if (engine.readyForUse)
-		LoadGenotypeFromPhasedVcf(ped, engine.genotypes, engine.refalleles, engine.freq1s, phasedfile, maxPhred, numPhased, engine,errorRate,transRate);//this is where thunder copy GL into genotype arrays.helpful for understand genotype datastructre.
+		LoadGenotypeFromPhasedVcf(ped, engine.genotypes, engine.refalleles, engine.freq1s, phasedfile, maxPhred, numPhased, engine, errorRate, transRate);//this is where thunder copy GL into genotype arrays.helpful for understand genotype datastructre.
 
 
 
@@ -1033,19 +1343,18 @@ int main(int argc, char ** argv)
 			return MemoryAllocationFailure();
 	}
 
-	//ConsensusBuilder::EstimateMemoryInfo(rounds - burnin, ped.count * 2, ped.markerCount);
-	//ConsensusBuilder consensus(rounds - burnin, ped.count * 2, ped.markerCount);
+	ConsensusBuilder::EstimateMemoryInfo(SamplingRounds, ped.count * 2, ped.markerCount);
+	ConsensusBuilder consensus(SamplingRounds, ped.count * 2, ped.markerCount);
 
-	//if (consensus.readyForUse == false)
-	//	return MemoryAllocationFailure();
+	if (consensus.readyForUse == false)
+		return MemoryAllocationFailure();
 
 	DosageCalculator::storeDistribution = OutputManager::outputDosage ||
 		OutputManager::outputQuality ||
 		OutputManager::outputGenotypes;
 
-	//DosageCalculator::EstimateMemoryInfo(rounds - burnin, ped.count, ped.markerCount);
+
 	DosageCalculator::EstimateMemoryInfo(1, ped.count, ped.markerCount);
-	//DosageCalculator doses(rounds - burnin, ped.count, ped.markerCount);
 	DosageCalculator doses(1, ped.count, ped.markerCount);
 
 	if (doses.readyForUse == false)
@@ -1059,10 +1368,6 @@ int main(int argc, char ** argv)
 	printf("Memory allocated successfully\n\n");
 
 	SetCrashExplanation("loading error rate and cross over maps");
-
-	////engine.SetErrorRate(errorRate);
-	//UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
-	//UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
 
 	bool newline = engine.LoadCrossoverRates(crossFile);
 	newline |= engine.LoadErrorRates(errorFile);
@@ -1089,7 +1394,7 @@ int main(int argc, char ** argv)
 	printf("Found initial haplotype set\n\n");
 	//OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
 	//return 0;
-	engine.LoadHaplotypesFromPhasedVCF(ped,phasedfile);
+	engine.LoadHaplotypesFromPhasedVCF(ped, phasedfile);
 
 	SetCrashExplanation("revving up haplotyping engine");
 
@@ -1097,24 +1402,24 @@ int main(int argc, char ** argv)
 
 	//for (int i = 0; i < rounds; i++)
 	//{
-		engine.LoopThroughChromosomes();
-		if (!fixTrans) engine.UpdateThetas();
-		errorRate = engine.UpdateErrorRate();
+	engine.LoopThroughChromosomes(consensus,SamplingRounds);
+	if (!fixTrans) engine.UpdateThetas();
+	errorRate = engine.UpdateErrorRate();
 
-		//printf("Markov Chain iteration %d [%d mosaic crossovers]\n",
-		//	i + 1, engine.TotalCrossovers());
+	//printf("Markov Chain iteration %d [%d mosaic crossovers]\n",
+	//	i + 1, engine.TotalCrossovers());
 
-		//if (i < burnin)
-		//	continue;
+	//if (i < burnin)
+	//	continue;
 
-		//if (OutputManager::outputHaplotypes)
-		//	consensus.Store(engine.haplotypes);
+	//if (OutputManager::outputHaplotypes)
+	//	consensus.Store(engine.haplotypes);
 
-		if (doses.storeDosage || doses.storeDistribution)
-			doses.Update(engine.haplotypes);
+	if (doses.storeDosage || doses.storeDistribution)
+		doses.Update(engine.haplotypes);
 
-		UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
-		UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
+	UpdateVector(engine.thetas, thetas, nthetas, engine.markers - 1);
+	UpdateErrorRates(engine.error_models, error_rates, nerror_rates, engine.markers);
 
 	//	//if (polling > 0 && ((i - burnin) % polling) == 0) {
 	//	int i = 0;// adjust for following code
@@ -1148,7 +1453,7 @@ int main(int argc, char ** argv)
 	//   ParseHaplotypes(engine.haplotypes, engine.individuals * 2 - 2, engine.markers, 32);
 
 	SetCrashExplanation("outputing solution");
-	fprintf(stderr,"%d %d\n",ped.count,ped.markerCount);
+	fprintf(stderr, "%d %d\n", ped.count, ped.markerCount);
 	// If we did multiple rounds of haplotyping, then generate consensus
 	//if (rounds > 1)
 	//	OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".vcf.gz", thetas, error_rates);
@@ -1157,7 +1462,10 @@ int main(int argc, char ** argv)
 	if (OutputManager::outputHaplotypes)
 		OutputManager::WriteHaplotypes(outfile, ped, engine.haplotypes);
 	else
+	{
 		UnphasedSamplesOutputVCF(shotgunfile, ped, doses, outfile + ".vcf.gz", thetas, error_rates, engine);
+		OutputVCFConsensus(shotgunfile, ped, consensus, doses, outfile + ".consensus.vcf.gz", thetas, error_rates);
+	}
 
 	printf("Estimated mismatch rate in Markov model is: %.5f\n", errorRate);
 }

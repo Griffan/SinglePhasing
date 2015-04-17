@@ -1987,11 +1987,7 @@ void Haplotyper::LoopThroughChromosomes()
       //if (i < individuals - phased)
       if(phasedSample[i]==1)//unphased sample
          {
-		 fprintf(stderr,"array:");
-	for(int k=0;k!=individuals-1;++k)
-		fprintf(stderr,"%d",array[k]);
-	fprintf(stderr,"\n");
-	fprintf(stderr,"the sample is number:%d\n",i);
+
          ScoreLeftConditional();
          SampleChromosomes(&globalRandom);
 
@@ -2027,7 +2023,82 @@ void Haplotyper::LoopThroughChromosomes()
    if (approximate)
       delete [] array;
    }
+void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTimes)
+{
+	bool approximate = (states == individuals * 2 - 2) ? false : true;
 
+	ResetCrossovers();
+
+	int * array = NULL;
+
+	if (approximate)
+	{
+		array = new int[individuals];
+
+		if (array == NULL)
+			error("Out of memory allocating array for sampling individuals\n");
+
+		array[individuals - 1] = 1;
+	}
+
+	for (int i = individuals - 1; i >= 0; i--)
+	{
+		SwapIndividuals(i, individuals - 1);
+
+		if (approximate)
+			SelectReferenceSet(array, i);
+
+		if (weights != NULL)
+			ScaleWeights();
+
+		if (updateDiseaseScores)
+			ScoreNPL();
+
+		//if (i < individuals - phased)
+		if (phasedSample[i] == 1)//unphased sample
+		{
+
+			ScoreLeftConditional();
+			for (int j = 0; j != SampleTimes; ++j)
+			{
+				SampleChromosomes(&globalRandom);
+				SwapIndividuals(i, individuals - 1);
+				Builder.Store(haplotypes);
+				SwapIndividuals(i, individuals - 1);
+			}
+
+			if (updateDiseaseScores && diseaseCount)
+				IntegrateNPL();
+
+#ifdef _DEBUG
+			if (!SanityCheck())
+			{
+				printf("\nProblems above occurred haplotyping individual %d\n\n", i);
+				Print();
+			}
+#endif
+		}
+		else
+		{
+			ScoreLeftConditionalForHaplotype();
+			SampleHaplotypeSource(&globalRandom);
+			SwapHaplotypes(states, states + 1);
+			ScoreLeftConditionalForHaplotype();
+			SampleHaplotypeSource(&globalRandom);
+			SwapHaplotypes(states, states + 1);
+		}
+
+		if (approximate)
+			for (int j = individuals - 1, out = states / 2; j >= 0; j--)
+				if (array[j])
+					SwapIndividuals(j, out--);
+
+		SwapIndividuals(i, individuals - 1);
+	}
+
+	if (approximate)
+		delete[] array;
+}
 void Haplotyper::OutputMLEs(Pedigree & ped, const String & prefix, bool mldetails)
    {
    FILE * dose = fopen(prefix + ".mldose", "wt");

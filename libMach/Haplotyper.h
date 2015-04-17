@@ -21,6 +21,7 @@
 #include "Random.h"
 #include "StringBasics.h"
 #include "ErrorRate.h"
+#include "MergeHaplotypes.h"
 
 #ifdef   __DOUBLE_HAPLOTYPING__
 #define  float double
@@ -157,6 +158,7 @@ class Haplotyper
       // Higher level markov chain functionality
       void WarmUp(int seeds, int rounds);
       void LoopThroughChromosomes();
+	  void LoopThroughChromosomes(ConsensusBuilder&, int);
 
       // Build a set of consensus haplotypes
       void BuildConsensus(int samples);

@@ -23,6 +23,7 @@
 #include "Error.h"
 #include <math.h>
 #include <limits.h>
+#include <fstream>
 using namespace libVcf;
 
 ShotgunHaplotyper::ShotgunHaplotyper()
@@ -174,6 +175,66 @@ void ShotgunHaplotyper::ChooseByBestMatch(int* array, int numStates) {
   //fprintf(stderr,"Weighting by mismatch count, sum = %f\n",sum);
 }
 
+void ShotgunHaplotyper:: ChooseByLikelihood(int *array, int numStates, double* maxLogLiks)
+{
+	//double* maxLogLiks = new double[individuals - 1];
+	int count = 0;
+	for (int i = individuals-phased; i < individuals - 1; ++i) {//each individual
+		array[i] = 0;
+		maxLogLiks[i] = 0;
+		//if (phasedSample[i] != -1) {
+		//	//fprintf(stderr, "I am using unphased continue branch, individual %d\n",i); 
+		//	continue;
+		//}
+		//fprintf(stderr, "now process individual %ith out of %d\n", i, individuals);
+		double maxLogLik = -1e99;
+		for (int j = 0; j < 2; ++j) {//each hap
+			double logLik = 0;
+			char* h = haplotypes[2 * i + j];//hap string:00010101010101010101
+			for (int l = 0; l < markers; ++l)
+			{
+				//fprintf(stderr,"marker %d of individual %d allele on h:%d and genotype:%d,%d,%d\n",l,i,h[l],genotypes[i][3*l],genotypes[i][3*l+1],genotypes[i][3*l+2]);
+				logLik += log(phred2prob[genotypes[individuals - 1][3 * l + h[l]]] * freq1s[l] + phred2prob[genotypes[individuals - 1][3 * l + h[l] + 1]] * (1 - freq1s[l]));
+				/*if (h[l]==0)
+					logLik += log(phred2prob[genotypes[individuals - 1][3 * l + h[l]]] * (1-freq1s[l]) * (1-freq1s[l]) + phred2prob[genotypes[individuals - 1][3 * l + h[l] + 1]] * 2 * freq1s[l]*(1 - freq1s[l]));
+				else
+					logLik += log(phred2prob[genotypes[individuals - 1][3 * l + h[l]]] * 2 * freq1s[l] * (1 - freq1s[l]) + phred2prob[genotypes[individuals - 1][3 * l + h[l] + 1]] * freq1s[l]*freq1s[l]);*/
+			}
+			if (maxLogLik < logLik)  maxLogLik = logLik;
+		}
+		// { fprintf(stderr, "individual %d\t got %f likes\n", i, maxLogLik);  }
+		maxLogLiks[i] = maxLogLik;
+
+		if (count < numStates / 2)
+		{
+			array[i] = 1;
+			count++;
+		}
+		else {
+			double minVal = 1e99;
+			int minIdx = -1;
+			for (int j = 0; j <= i; ++j) {
+				if (array[j] == 1) {
+					if (minVal > maxLogLiks[j]) {
+						minVal = maxLogLiks[j];
+						minIdx = j;
+					}
+				}
+			}
+			if (minIdx < 0) {
+				error("Cannot find sample to swap out");
+			}
+
+			if (minIdx != i&&maxLogLiks[minIdx]<maxLogLiks[i]) {//if i is the smallest but not chosen, which means i is better than some of the individuals in first half range
+				array[minIdx] = 0;
+				array[i] = 1;
+				//fprintf(stderr, "choose %d\n", i);
+			}
+		}
+	}
+
+	//delete[] maxLogLiks;
+}
 /*
 void ShotgunHaplotyper::ChooseByLongestMatch(int* array, int numStates) {
   int* sumDiff = new int[markers]();
@@ -448,7 +509,7 @@ void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(String& fileName)
 		error(e.what());
 	}
 }
-void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(Pedigree &ped,String& fileName)
+void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(Pedigree &ped, String& fileName)//, std::unordered_map<std::string, bool>& pidIncludedInPhasedVcf)
 {
 	//  if (rand == NULL)
 	//   rand = &globalRandom;
@@ -470,15 +531,18 @@ void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(Pedigree &ped,String& fileNa
 			throw VcfFileException("No individual genotype information exist in the input VCF file %s", fileName.c_str());
 		}
 
-		vector<int> personIndices(ped.count, -1);
+		//vector<int> personIndices(ped.count, -1);
+		std::unordered_map<int, int> personIndices;
 		StringIntHash originalPeople; // key: famid+subID, value: original order (0 based);
 		int person = 0;
 		for (int i = 0; i < nSamples; i++) {
-			originalPeople.Add(pVcf->vpVcfInds[i]->sIndID + "." + pVcf->vpVcfInds[i]->sIndID, person);
-			person++;
+			{
+				originalPeople.Add(pVcf->vpVcfInds[i]->sIndID + "." + pVcf->vpVcfInds[i]->sIndID, person);
+				person++;
+			}
 		}
 
-		for (int i = 0; i < ped.count; i++) {
+		for (int i = individuals-phased; i < individuals; i++) {
 			int idx = originalPeople.Integer(ped[i].famid + "." + ped[i].pid);
 			if (idx != -1)
 			{
@@ -487,40 +551,42 @@ void ShotgunHaplotyper::LoadHaplotypesFromPhasedVCF(Pedigree &ped,String& fileNa
 		}
 
 		for (int j = 0; pVcf->iterateMarker(); ++j) {
-			//fprintf(stderr,"j=%d\n",j);
+
 			pMarker = pVcf->getLastMarker();
 			for (int i(0); i < nSamples; ++i) {//input of indivudals of phased vcf
-				//fprintf(stderr,"i=%d\n",j);
-				unsigned short g = pMarker->vnSampleGenotypes[i];
-				char g1, g2;
 
-				// genotype is missing
-				if (g == 0xffff) {
-					fprintf(stderr, "ERROR: Observed Missing genotypes");
-					abort();
-				}
-				else {
-					// genotype is unphased
-					if ((g & 0x8000) == 0) {
-						if (!warningsPrinted) {
-							fprintf(stderr, "ERROR: Observed unphased genotypes %x", g);
-							abort();
-						}
-					}
-					g1 = (((g & 0x7f00) >> 8) & 0xff);
-					g2 = (g & 0x7f);
-				}
+				if (personIndices.find(i) != personIndices.end()){//pidIncludedInPhasedVcf.size() == 0 || pidIncludedInPhasedVcf.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) != pidIncludedInPhasedVcf.end()) {
+					unsigned short g = pMarker->vnSampleGenotypes[i];
+					char g1, g2;
 
-				if (pMarker->asAlts.Length() > 1) {
-					if (g1 == 0 || g2 == 0) {
-						fprintf(stderr, "ERROR: TriAllelic Site, but '0' genotype is observed");
+					// genotype is missing
+					if (g == 0xffff) {
+						fprintf(stderr, "ERROR: Observed Missing genotypes");
 						abort();
 					}
-					--g1;
-					--g2;
+					else {
+						// genotype is unphased
+						if ((g & 0x8000) == 0) {
+							if (!warningsPrinted) {
+								fprintf(stderr, "ERROR: Observed unphased genotypes %x", g);
+								abort();
+							}
+						}
+						g1 = (((g & 0x7f00) >> 8) & 0xff);
+						g2 = (g & 0x7f);
+					}
+
+					if (pMarker->asAlts.Length() > 1) {
+						if (g1 == 0 || g2 == 0) {
+							fprintf(stderr, "ERROR: TriAllelic Site, but '0' genotype is observed");
+							abort();
+						}
+						--g1;
+						--g2;
+					}
+					haplotypes[personIndices[i] * 2][j] = g1;
+					haplotypes[personIndices[i] * 2 + 1][j] = g2;
 				}
-				haplotypes[personIndices[i]*2][j] = g1;
-				haplotypes[personIndices[i] * 2 + 1][j] = g2;
 			}
 		}
 		delete pVcf;
@@ -1211,8 +1277,9 @@ bool ShotgunHaplotyper::ForceMemoryAllocation()
    }
 
 
-void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom) {
+void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom,Pedigree & ped) {
 //	fprintf(stderr,"I am using SelectReferenceSet method from ShotgunHaplotyper!\n");
+	double* maxLogLiks = new double[individuals - 1];
   if (greedy)
     {
       // Sanity check
@@ -1234,9 +1301,18 @@ void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom) {
 	array[globalRandom.NextInt() % (individuals - phased)] = 1;
     }
   else {
+	 
     if ( weightedStates > 0 ) {
       //ChooseByLongestMatch(array, weightedStates);
-      ChooseByBestMatch(array, weightedStates);
+      //ChooseByBestMatch(array, weightedStates);
+		//fprintf(stderr, "I am using weightedStages branch\n");
+		//double* maxLogLiks = new double[individuals - 1];
+		ChooseByLikelihood(array, weightedStates,maxLogLiks);
+		//if (forWhom==411)
+		//if (maxLogLiks[forWhom]==0)
+		//ShowChosenStatus(array,forWhom,ped,maxLogLiks,weightedStates);
+		//delete[] maxLogLiks;
+		
     }
     else {
       for (int i = 0; i < individuals - 1; ++i)
@@ -1246,19 +1322,44 @@ void ShotgunHaplotyper::SelectReferenceSet(int * array, int forWhom) {
     int chosen = weightedStates;
     while( chosen < states ) {
       int i = globalRandom.NextInt() % (individuals -1);
-      if ( array[i] == 1 ) continue;
+      if ( array[i] == 1 || i<(individuals-phased) ) continue;
       array[i] = 1;
       chosen += 2;
     }
   }
-
+  //double* maxLogLiks = new double[individuals - 1];
+  //ShowChosenStatus(array, forWhom, ped, maxLogLiks, states);
+  delete[] maxLogLiks;
   // Swap reference set into position
-  //fprintf(stderr,"array:");
   for (int j = 0, out = 0; j < individuals; j++)
   {
-//	  fprintf(stderr,"%d",array[j]);
     if (array[j])
       SwapIndividuals(j, out++);
+	//std::cerr << out << " swapped" << std::endl;
+
   }
-  //fprintf(stderr,"\n");
 }
+#define DEBUG 1
+#define SHOWLIK 1
+void ShotgunHaplotyper::ShowChosenStatus(int* array,int forWhom,Pedigree& ped,double * maxLogLiks,int numStates)
+{
+	if (DEBUG)fprintf(stderr, "now we are looking at individual:%s\n", ped[forWhom].pid.c_str());
+	if (DEBUG){
+		int sum_choose(0);
+		//int sum_unphased(0);
+		for (int i(0); i != individuals-1; ++i)
+		{
+			//sum_unphased += (phasedSample[i]!=-1?1:0);
+			sum_choose += array[i];
+			fprintf(stderr, "%s, the %d th individual's \t", ped[i].pid.c_str(),i);
+			if (SHOWLIK) fprintf(stderr, "likelihood:%f\t", maxLogLiks[i]);
+			if (array[i]) fprintf(stderr, "chosen\t");
+			fprintf(stderr, "\n");
+		}
+		fprintf(stderr, "we chose %d states under the request of %d\n", sum_choose * 2, numStates);
+		//fprintf(stderr, "we have %d individuals from unphased inputfile\n", sum_unphased);
+	}
+	fprintf(stderr, "\n");
+}
+
+

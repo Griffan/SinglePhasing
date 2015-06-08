@@ -1919,7 +1919,7 @@ void Haplotyper::ScaleWeights()
       weights[i] *= scale;
    }
 
-void Haplotyper::SelectReferenceSet(int * array, int forWhom)
+void Haplotyper::SelectReferenceSet(int * array, int forWhom, Pedigree&ped)
    {
      fprintf(stderr,"Haplotyper::SelectReferenceSet() called\n");
    if (greedy)
@@ -1976,7 +1976,7 @@ void Haplotyper::LoopThroughChromosomes()
       SwapIndividuals(i, individuals - 1);
 
       if (approximate)
-         SelectReferenceSet(array, i);
+		  // SelectReferenceSet(array, i);
 
       if (weights != NULL)
          ScaleWeights();
@@ -1984,8 +1984,7 @@ void Haplotyper::LoopThroughChromosomes()
       if (updateDiseaseScores)
          ScoreNPL();
 
-      //if (i < individuals - phased)
-      if(phasedSample[i]==1)//unphased sample
+      if (i < individuals - phased)
          {
 
          ScoreLeftConditional();
@@ -2023,7 +2022,7 @@ void Haplotyper::LoopThroughChromosomes()
    if (approximate)
       delete [] array;
    }
-void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTimes)
+void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTimes, Pedigree& ped)
 {
 	bool approximate = (states == individuals * 2 - 2) ? false : true;
 
@@ -2037,16 +2036,25 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTime
 
 		if (array == NULL)
 			error("Out of memory allocating array for sampling individuals\n");
-
+		for (int i(0); i != individuals - 1; ++i)
+			array[i] = 0;
 		array[individuals - 1] = 1;
 	}
 
 	for (int i = individuals - 1; i >= 0; i--)
+	//int i = 0;
 	{
 		SwapIndividuals(i, individuals - 1);
-
+		Builder.SwapIndividuals(i,individuals-1,SampleTimes);
 		if (approximate)
-			SelectReferenceSet(array, i);
+		{
+			SelectReferenceSet(array, i, ped);
+			for (int j(0), in(0); j != individuals, in <= states/2;++j)
+			{
+				if (array[j])
+					Builder.SwapIndividuals(j, in++,SampleTimes);
+			}
+		}
 
 		if (weights != NULL)
 			ScaleWeights();
@@ -2054,20 +2062,22 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTime
 		if (updateDiseaseScores)
 			ScoreNPL();
 
-		//if (i < individuals - phased)
-		if (phasedSample[i] == 1)//unphased sample
+		if (i < individuals - phased)
+		//if (phasedSample[i] != -1)//unphased sample
 		{
 
 			ScoreLeftConditional();
 			for (int j = 0; j != SampleTimes; ++j)
 			{
 				SampleChromosomes(&globalRandom);
-				Builder.Store(haplotypes);
+				Builder.Store(haplotypes , states);
 			}
-
+			Builder.stored = 0;
 			if (updateDiseaseScores && diseaseCount)
 				IntegrateNPL();
-
+			//std::cerr << "before checking" << std::endl;
+			//SelectReferenceSet(array, i, ped);
+			//std::cerr << "after checking" << std::endl;
 #ifdef _DEBUG
 			if (!SanityCheck())
 			{
@@ -2090,14 +2100,14 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder,int SampleTime
 			for (int j = individuals - 1, out = states / 2; j >= 0; j--)
 				if (array[j])
 				{
-					Builder.SwapHap(j,out);
+					Builder.SwapIndividuals(j, out,SampleTimes);
 					SwapIndividuals(j, out--);
 				}
 
 		SwapIndividuals(i, individuals - 1);
-		Builder.SwapHap(i, individuals - 1);
+		Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
 	}
-
+	Builder.stored = SampleTimes;
 	if (approximate)
 		delete[] array;
 }
@@ -2141,7 +2151,7 @@ void Haplotyper::OutputMLEs(Pedigree & ped, const String & prefix, bool mldetail
       SwapIndividuals(i, individuals - 1);
 
       if (approximate)
-         SelectReferenceSet(array, i);
+        // SelectReferenceSet(array, i);
 
       if (weights != NULL)
          ScaleWeights();

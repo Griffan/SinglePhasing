@@ -91,6 +91,27 @@ void ConsensusBuilder::Store(char ** newHaplotypes)
    stored++;
    }
 
+void ConsensusBuilder::Store(char ** newHaplotypes, int idummy)
+{
+	if (sampledHaplotypes == 0) return;
+
+	for (int i = idummy; i < idummy+2; i++)
+	{
+		int byte = 0, mask = 1;
+
+		for (int j = 0; j < markers; j++)
+		{
+			if (newHaplotypes[i][j])
+				sampledHaplotypes[stored][i][byte] |= mask;
+			else
+				sampledHaplotypes[stored][i][byte] &= ~mask;
+
+			mask = (mask == (1 << SEVEN)) ? (byte++, 1) : mask * 2;
+		}
+	}
+
+	stored++;
+}
 void ConsensusBuilder::Merge()
    {
    // Don't try to build consensus with no data
@@ -207,9 +228,9 @@ void ConsensusBuilder::Swap(char * & array1, char * & array2)
 {
 	char * temp = array1; array1 = array2; array2 = temp;
 }
-void ConsensusBuilder::SwapHap(int a, int b)
+void ConsensusBuilder::SwapIndividuals(int a, int b, int SampleTimes)
 {
-	for (int i = 0; i != stored; ++i)
+	for (int i = 0; i != SampleTimes; ++i)
 	{
 		Swap(sampledHaplotypes[i][a * 2], sampledHaplotypes[i][b * 2]);
 		Swap(sampledHaplotypes[i][a * 2 + 1], sampledHaplotypes[i][b * 2 + 1]);

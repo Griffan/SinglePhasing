@@ -41,8 +41,6 @@ class Haplotyper
 
       int  phased, individuals, states, markers;
 
-      vector<int> phasedSample;//fan added on
-
       char ** genotypes;
       char ** haplotypes;
       float * thetas;
@@ -158,7 +156,7 @@ class Haplotyper
       // Higher level markov chain functionality
       void WarmUp(int seeds, int rounds);
       void LoopThroughChromosomes();
-	  void LoopThroughChromosomes(ConsensusBuilder&, int);
+	  void LoopThroughChromosomes(ConsensusBuilder&, int, Pedigree&);
 
       // Build a set of consensus haplotypes
       void BuildConsensus(int samples);
@@ -282,7 +280,7 @@ class Haplotyper
       void Swap(float * & array1, float * & array2)
          { float * temp = array1; array1 = array2; array2 = temp; }
 
-      virtual void SelectReferenceSet(int * choices, int forWhom);
+      virtual void SelectReferenceSet(int * choices, int forWhom, Pedigree&ped);
       virtual void SwapIndividuals(int a, int b);
       void SwapHaplotypes(int a, int b);
 

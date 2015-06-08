@@ -36,10 +36,11 @@ class ConsensusBuilder
       ~ConsensusBuilder();
 
       void Store(char ** newHaplotypes);
+	  void Store(char ** newHaplotypes, int i);
       void Merge();
 	  void Swap(char * & array1, char * & array2);
 
-	  void SwapHap(int a, int b);
+	  void SwapIndividuals(int a, int b, int SampleTimes);
 
 
       // Quality scores for estimated haplotypes

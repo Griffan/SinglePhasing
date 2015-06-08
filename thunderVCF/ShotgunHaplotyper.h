@@ -16,7 +16,7 @@
 // 
  
 #include "Haplotyper.h"
-
+#include <unordered_map>
 class ShotgunHaplotyper : public Haplotyper
    {
    public:
@@ -26,15 +26,16 @@ class ShotgunHaplotyper : public Haplotyper
       int weightedStates;
       char   * refalleles;
       double * freq1s;
+
       //bool weightByMismatch;
       //bool weightByLikelihood;
       //bool weightByLongestMatch;
-
+	  
       virtual void RandomSetup(Random * rand = NULL);
       virtual void PhaseByReferenceSetup(Random * rand = NULL);
       virtual void LoadHaplotypesFromVCF(String& fileName);
 	  virtual void LoadHaplotypesFromPhasedVCF(String& fileName);
-	  virtual void LoadHaplotypesFromPhasedVCF(Pedigree &ped, String& fileName);
+	  virtual void LoadHaplotypesFromPhasedVCF(Pedigree &ped, String& fileName);// , std::unordered_map<std::string, bool>&);
 	  //virtual void LoadPhasedHaplotypesFromVCF(String& fileName);
       virtual void ConditionOnData(float * matrix, int marker, 
                                    char phred11, char phred12, char phred22);
@@ -47,18 +48,21 @@ class ShotgunHaplotyper : public Haplotyper
       virtual void SampleChromosomes(Random * rand);
       virtual bool ForceMemoryAllocation();
       
-      virtual void SelectReferenceSet(int * array, int forWhom);
+      virtual void SelectReferenceSet(int * array, int forWhom,Pedigree&ped);
+	  virtual void ShowChosenStatus(int* array, int forWhom, Pedigree& ped, double * maxLogLiks, int numStates);
       virtual void WeightByMismatch();
       virtual void WeightByLikelihood();
       virtual void WeightByLongestMatch();
       //virtual void ChooseByLongestMatch(int * array, int numStates);
       virtual void ChooseByBestMatch(int * array, int numStates);
-
+	  virtual void ChooseByLikelihood(int *array, int numStates, double* maxLogLiks);
       virtual void RetrieveMemoryBlock(int marker);
       
       //void   SetShotgunError(double rate);
       //double GetShotgunError() { return shotgunError; }
       void   CalculatePhred2Prob();
+
+
 
    protected:
       //float ** shotgunErrorMatrix;

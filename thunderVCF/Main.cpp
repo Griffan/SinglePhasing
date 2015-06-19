@@ -45,6 +45,8 @@ std::unordered_map<std::string, bool> unphaseMarkerFlag;//record relative index 
 
 std::unordered_map<std::string, bool> pidIncludedInUnphasedVcf;
 std::unordered_map<std::string, bool> pidIncludedInPhasedVcf;
+std::unordered_map<std::string, bool> pidExcludedInUnphasedVcf;
+std::unordered_map<std::string, bool> pidExcludedInPhasedVcf;
 
 // print output files directly in VCF format
 // inVcf contains skeleton of VCF information to copy from
@@ -464,7 +466,37 @@ void LoadPidToBeIncluded(String & filename, String & filename2)
 		fin2.close();
 	}
 }
-void LoadShotgunSamples(Pedigree &ped, const String& filename, std::unordered_map<std::string,bool>& pidIncluded, int& num) {
+
+void LoadPidToBeExcluded(String & filename, String & filename2)
+{
+	if (filename != "")
+	{
+		std::ifstream fin(filename.c_str());
+		if (!fin.is_open()) {
+			std::cerr << "Open file " << filename << " failed!" << std::endl; exit(EXIT_FAILURE);
+		}
+		std::string tmpLine;
+		while (getline(fin, tmpLine))
+		{
+			pidExcludedInUnphasedVcf[tmpLine] = true;
+		}
+		fin.close();
+	}
+	if (filename2 != "")
+	{
+		std::ifstream fin2(filename2.c_str());
+		if (!fin2.is_open()) {
+			std::cerr << "Open file " << filename2 << " failed!" << std::endl; exit(EXIT_FAILURE);
+		}
+		std::string tmpLine;
+		while (getline(fin2, tmpLine))
+		{
+			pidExcludedInPhasedVcf[tmpLine] = true;
+		}
+		fin2.close();
+	}
+}
+void LoadShotgunSamples(Pedigree &ped, const String& filename, std::unordered_map<std::string, bool>& pidIncluded, std::unordered_map<std::string, bool>& pidExcluded, int& num) {
 	//printf("starting LoadShotgunSamples\n\n");
 
 	try {
@@ -480,13 +512,17 @@ void LoadShotgunSamples(Pedigree &ped, const String& filename, std::unordered_ma
 		if (pVcf->getSampleCount() == 0) {
 			throw VcfFileException("No individual genotype information exist in the input VCF file %s", filename.c_str());
 		}
-
+		//std::cerr << "Sample Size:" << pVcf->getSampleCount() << std::endl;
+		//std::cerr << "Include Size:" << pidIncluded.size() << std::endl;
+		//std::cerr << "Exlude Size:" << pidExcluded.size() << std::endl;
 		for (int i = 0; i < pVcf->getSampleCount(); ++i) {
-			if (pidIncluded.size() == 0 || pidIncluded.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) != pidIncluded.end())
+			//std::cerr << "input:" << std::string(pVcf->vpVcfInds[i]->sIndID.c_str()) << "\t" << pidIncluded[std::string(pVcf->vpVcfInds[i]->sIndID.c_str())] << std::endl;
+			if ((pidIncluded.size() == 0 || pidIncluded.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) != pidIncluded.end()) && (pidExcluded.size()==0||pidExcluded.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) == pidExcluded.end()))
 			{
 				ped.AddPerson(pVcf->vpVcfInds[i]->sIndID, pVcf->vpVcfInds[i]->sIndID, "0", "0", 1, 1);
 				num++;
 			}
+
 		}
 
 		delete pVcf;
@@ -941,7 +977,7 @@ void LoadGenotypeFromPhasedVcf(Pedigree &ped, char** genotypes, char* refalleles
 }
 int main(int argc, char ** argv)
 {
-	String shotgunfile, mapfile, outfile("mach1.out"), phasedfile,pidIncludeFromUnphased(""),pidIncludeFromPhased("");
+	String shotgunfile, mapfile, outfile("mach1.out"), phasedfile, pidIncludeFromUnphased(""), pidIncludeFromPhased(""), pidExcludeFromUnphased(""), pidExcludeFromPhased("");
 	String crossFile, errorFile;
 	clock_t t;
 	t = clock();
@@ -973,6 +1009,8 @@ int main(int argc, char ** argv)
 		LONG_PARAMETER_GROUP("Optional Files")
 		LONG_STRINGPARAMETER("includeUnphasedIDs", &pidIncludeFromUnphased)
 		LONG_STRINGPARAMETER("includePhasedIDs", &pidIncludeFromPhased)
+		LONG_STRINGPARAMETER("excludeUnphasedIDs", &pidExcludeFromUnphased)
+		LONG_STRINGPARAMETER("excludePhasedIDs", &pidExcludeFromPhased)
 		LONG_STRINGPARAMETER("crossoverMap", &crossFile)
 		LONG_STRINGPARAMETER("errorMap", &errorFile)
 		LONG_STRINGPARAMETER("physicalMap", &mapfile)
@@ -1035,13 +1073,14 @@ int main(int argc, char ** argv)
 
 	SetCrashExplanation("loading shotgun data - first pass");
 	LoadPidToBeIncluded(pidIncludeFromUnphased, pidIncludeFromPhased);
+	LoadPidToBeExcluded(pidExcludeFromUnphased, pidExcludeFromPhased);
 	/*We add unphased samples first*/
 	int numUnphased(0);
-	LoadShotgunSamples(ped, shotgunfile, pidIncludedInUnphasedVcf,numUnphased);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
-
+	LoadShotgunSamples(ped, shotgunfile, pidIncludedInUnphasedVcf, pidExcludedInUnphasedVcf, numUnphased);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
+	std::cerr << "Load unphased individuals:"<<numUnphased<<std::endl;
 	/*now loading phased individuals*/
-	LoadShotgunSamples(ped, phasedfile, pidIncludedInPhasedVcf, engine.phased);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
-	
+	LoadShotgunSamples(ped, phasedfile, pidIncludedInPhasedVcf, pidExcludedInPhasedVcf, engine.phased);// here shotgunfile is the vcf file, here vcf is used for filling up the first five column of PED file(check the PED format).
+	std::cerr << "Load phased individuals:" << engine.phased << std::endl;
 	/*Notice that now we adding markers as subset of phased markers*/
 	LoadPolymorphicSites(phasedfile);// here only extracted site information only, used for site check
 

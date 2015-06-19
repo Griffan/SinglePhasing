@@ -2044,33 +2044,36 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTim
 	for (int i = individuals - 1; i >= 0; i--)
 	//int i = 0;
 	{
-		SwapIndividuals(i, individuals - 1);
-		Builder.SwapIndividuals(i,individuals-1,SampleTimes);
-		if (approximate)
-		{
-			SelectReferenceSet(array, i, ped);
-			for (int j(0), in(0); j != individuals, in <= states/2;++j)
-			{
-				if (array[j])
-					Builder.SwapIndividuals(j, in++,SampleTimes);
-			}
-		}
-
-		if (weights != NULL)
-			ScaleWeights();
-
-		if (updateDiseaseScores)
-			ScoreNPL();
-
 		if (i < individuals - phased)
-		//if (phasedSample[i] != -1)//unphased sample
+			//if (phasedSample[i] != -1)//unphased sample
 		{
+			SwapIndividuals(i, individuals - 1);
+			Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
+			if (approximate)
+			{
+				SelectReferenceSet(array, i, ped);
+				for (int j(0), in(0); j != individuals, in <= states / 2; ++j)
+				{
+					if (array[j])
+						Builder.SwapIndividuals(j, in++, SampleTimes);
+				}
+			}
+
+			if (weights != NULL)
+				ScaleWeights();
+
+			if (updateDiseaseScores)
+				ScoreNPL();
+
+			//if (i < individuals - phased)
+			////if (phasedSample[i] != -1)//unphased sample
+			//{
 
 			ScoreLeftConditional();
 			for (int j = 0; j != SampleTimes; ++j)
 			{
 				SampleChromosomes(&globalRandom);
-				Builder.Store(haplotypes , states);
+				Builder.Store(haplotypes, states);
 			}
 			Builder.stored = 0;
 			if (updateDiseaseScores && diseaseCount)
@@ -2085,27 +2088,28 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTim
 				Print();
 			}
 #endif
-		}
-		else
-		{
-			ScoreLeftConditionalForHaplotype();
-			SampleHaplotypeSource(&globalRandom);
-			SwapHaplotypes(states, states + 1);
-			ScoreLeftConditionalForHaplotype();
-			SampleHaplotypeSource(&globalRandom);
-			SwapHaplotypes(states, states + 1);
-		}
+			//}
+			//else
+			//{
+			//	ScoreLeftConditionalForHaplotype();
+			//	SampleHaplotypeSource(&globalRandom);
+			//	SwapHaplotypes(states, states + 1);
+			//	ScoreLeftConditionalForHaplotype();
+			//	SampleHaplotypeSource(&globalRandom);
+			//	SwapHaplotypes(states, states + 1);
+			//}
 
-		if (approximate)
-			for (int j = individuals - 1, out = states / 2; j >= 0; j--)
-				if (array[j])
-				{
-					Builder.SwapIndividuals(j, out,SampleTimes);
-					SwapIndividuals(j, out--);
-				}
+			if (approximate)
+				for (int j = individuals - 1, out = states / 2; j >= 0; j--)
+					if (array[j])
+					{
+				Builder.SwapIndividuals(j, out, SampleTimes);
+				SwapIndividuals(j, out--);
+					}
 
-		SwapIndividuals(i, individuals - 1);
-		Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
+			SwapIndividuals(i, individuals - 1);
+			Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
+		}
 	}
 	Builder.stored = SampleTimes;
 	if (approximate)

@@ -2022,7 +2022,7 @@ void Haplotyper::LoopThroughChromosomes()
    if (approximate)
       delete [] array;
    }
-void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTimes, Pedigree& ped)
+void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTimes, Pedigree& ped, std::unordered_map<std::string,std::pair<int,int> >& DupTable)
 {
 	bool approximate = (states == individuals * 2 - 2) ? false : true;
 
@@ -2047,6 +2047,16 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTim
 		if (i < individuals - phased)
 			//if (phasedSample[i] != -1)//unphased sample
 		{
+
+			/*deal with duplicated samples begin*/
+			int DupIndexPhased = DupTable[std::string(ped[i].pid.c_str())].second;//Duptable:pid,pair(fristIndex,secondIndex)
+			if (DupIndexPhased != -1)//duplicated
+			{
+				//std::cerr << "Swap duplicate individual:" << ped[i].pid << std::endl;
+				SwapIndividuals(DupIndexPhased, individuals - 1);
+				Builder.SwapIndividuals(DupIndexPhased, individuals - 1, SampleTimes);
+			}
+			/*deal with duplicated samples end*/
 			SwapIndividuals(i, individuals - 1);
 			Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
 			if (approximate)
@@ -2109,6 +2119,14 @@ void Haplotyper::LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTim
 
 			SwapIndividuals(i, individuals - 1);
 			Builder.SwapIndividuals(i, individuals - 1, SampleTimes);
+			/*deal with duplicated samples begin*/
+			if (DupIndexPhased != -1)//duplicated
+			{
+				//std::cerr << "Swap duplicate individual back:" << ped[i].pid << std::endl;
+				SwapIndividuals(DupIndexPhased, individuals - 1);
+				Builder.SwapIndividuals(DupIndexPhased, individuals - 1, SampleTimes);
+			}
+			/*deal with duplicated samples end*/
 		}
 	}
 	Builder.stored = SampleTimes;

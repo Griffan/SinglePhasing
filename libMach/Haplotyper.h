@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unordered_map>
 
 class Pedigree;
 class String;
@@ -156,7 +157,7 @@ class Haplotyper
       // Higher level markov chain functionality
       void WarmUp(int seeds, int rounds);
       void LoopThroughChromosomes();
-	  void LoopThroughChromosomes(ConsensusBuilder&, int, Pedigree&);
+	  void LoopThroughChromosomes(ConsensusBuilder& Builder, int SampleTimes, Pedigree& ped, std::unordered_map<std::string, std::pair<int, int> >& DupTable);
 
       // Build a set of consensus haplotypes
       void BuildConsensus(int samples);

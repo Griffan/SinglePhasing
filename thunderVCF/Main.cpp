@@ -48,6 +48,8 @@ std::unordered_map<std::string, bool> pidIncludedInPhasedVcf;
 std::unordered_map<std::string, bool> pidExcludedInUnphasedVcf;
 std::unordered_map<std::string, bool> pidExcludedInPhasedVcf;
 
+std::unordered_map<std::string, std::pair<int, int> > DuplicatedIndividualPair;
+
 // print output files directly in VCF format
 // inVcf contains skeleton of VCF information to copy from
 // consensus contains the haplotype information to replace GT field
@@ -508,6 +510,7 @@ void LoadShotgunSamples(Pedigree &ped, const String& filename, std::unordered_ma
 		pVcf->bParseValues = false;
 		pVcf->openForRead(filename.c_str());
 
+		int PreviousCount = ped.count;
 		// check the sanity of data
 		if (pVcf->getSampleCount() == 0) {
 			throw VcfFileException("No individual genotype information exist in the input VCF file %s", filename.c_str());
@@ -519,7 +522,18 @@ void LoadShotgunSamples(Pedigree &ped, const String& filename, std::unordered_ma
 			//std::cerr << "input:" << std::string(pVcf->vpVcfInds[i]->sIndID.c_str()) << "\t" << pidIncluded[std::string(pVcf->vpVcfInds[i]->sIndID.c_str())] << std::endl;
 			if ((pidIncluded.size() == 0 || pidIncluded.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) != pidIncluded.end()) && (pidExcluded.size()==0||pidExcluded.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) == pidExcluded.end()))
 			{
-				ped.AddPerson(pVcf->vpVcfInds[i]->sIndID, pVcf->vpVcfInds[i]->sIndID, "0", "0", 1, 1);
+				if (DuplicatedIndividualPair.find(std::string(pVcf->vpVcfInds[i]->sIndID.c_str())) == DuplicatedIndividualPair.end())//never showed before
+				{
+					ped.AddPerson(pVcf->vpVcfInds[i]->sIndID, pVcf->vpVcfInds[i]->sIndID, "0", "0", 1, 1);
+					DuplicatedIndividualPair[std::string(pVcf->vpVcfInds[i]->sIndID.c_str())] = std::make_pair(i,-1);
+					//std::cerr << "Never saw" << pVcf->vpVcfInds[i]->sIndID << std::endl;
+				}
+				else
+				{
+					warning("Individual %s duplicated!", pVcf->vpVcfInds[i]->sIndID.c_str());
+					ped.AddPerson(pVcf->vpVcfInds[i]->sIndID, pVcf->vpVcfInds[i]->sIndID+String("_dup"), "0", "0", 1, 1);
+					DuplicatedIndividualPair[std::string(pVcf->vpVcfInds[i]->sIndID.c_str())].second = i + PreviousCount;
+				}
 				num++;
 			}
 
@@ -1226,7 +1240,7 @@ int main(int argc, char ** argv)
 
 	//for (int i = 0; i < rounds; i++)
 	//{
-	engine.LoopThroughChromosomes(consensus,SamplingRounds,ped);
+	engine.LoopThroughChromosomes(consensus,SamplingRounds,ped, DuplicatedIndividualPair);
 	if (!fixTrans) engine.UpdateThetas();
 	errorRate = engine.UpdateErrorRate();
 

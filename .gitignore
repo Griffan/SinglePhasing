@@ -26,5 +26,8 @@ SinglePhasing*
 
 thunderVCF/thunderVCF
 thunderVCF/bin/thunderVCF
+thunderVCF
 libMach
 libStatGen
+CMakeLists.txt
+*/CMakeLists.txt

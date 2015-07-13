@@ -5,6 +5,7 @@
 .settings/
 data/
 SinglePhasing*
+SinglePhaseDebug*
 
 #files being edited
 *~

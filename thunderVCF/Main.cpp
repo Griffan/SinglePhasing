@@ -41,7 +41,7 @@ float * error_rates = NULL;
 int     nerror_rates = 0;
 std::unordered_map<std::string, int> unphaseMarkerIdx;//record marker name and relative index in unphased vcf
 std::unordered_map<std::string, int> unphaseMarkerUIdx;//record marker name and relative index in phased ref vcf
-std::unordered_map<std::string, bool> unphaseMarkerFlag;//record if this marker only shows in unphased vcf
+std::unordered_map<std::string, bool> unphaseMarkerFlag;//false:only shown in ref vcf;true:also shown in unphased vcf
 
 std::unordered_map<std::string, bool> pidIncludedInUnphasedVcf;
 std::unordered_map<std::string, bool> pidIncludedInPhasedVcf;
@@ -161,7 +161,7 @@ void OutputVCFConsensus(const String& inVcf, Pedigree & ped, ConsensusBuilder & 
 			pMarker = pVcf->getLastMarker();
 			markerName.printf("%s:%d", pMarker->sChrom.c_str(), pMarker->nPos);
 
-			if(unphaseMarkerFlag[std::string(markerName.c_str())]==false) {//if not unphase unique marker, update content otherwise remains as before
+			if(unphaseMarkerFlag[std::string(markerName.c_str())]==true) {//if not unphase unique marker, update content otherwise remains as before
 				doses.CalculateMarkerInfo(m, freq, maf, avgPost, rsq);
 
 				////fprintf(stderr,"foo1\n");
@@ -354,7 +354,7 @@ void UnphasedSamplesOutputVCF(const String& inVcf, Pedigree & ped, DosageCalcula
 			pMarker = pVcf->getLastMarker();
 			markerName.printf("%s:%d", pMarker->sChrom.c_str(), pMarker->nPos);
 
-			if(unphaseMarkerFlag[std::string(markerName.c_str())]==false) {//if not unphase unique marker, update content otherwise remains as before
+			if(unphaseMarkerFlag[std::string(markerName.c_str())]==true) {//if not unphase unique marker, update content otherwise remains as before
 				doses.CalculateMarkerInfo(m, freq, maf, avgPost, rsq);
 
 				////fprintf(stderr,"foo1\n");
@@ -681,7 +681,7 @@ void LoadUnphasedPolymorphicSites(const String& filename) {
 			int idx =  Pedigree::markerLookup.Integer(markerName);//only look up, no add in
 			if (idx != -1)//shown in ref panel marker set
 			{
-				unphaseMarkerFlag[std::string(markerName.c_str())] = true;
+				unphaseMarkerFlag[std::string(markerName.c_str())] = true;//TODO:confirm true or false
 				unphaseMarkerIdx[std::string(markerName.c_str())] = localIdx;
 			}
 			else
@@ -763,7 +763,7 @@ void LoadShotgunResults(Pedigree &ped, char** genotypes, /*char* refalleles, dou
 			markerName.printf("%s:%d", pMarker->sChrom.c_str(), pMarker->nPos);
 			//printf("now for marker %s:%d\t", pMarker->sChrom.c_str(), pMarker->nPos);
 			if (unphaseMarkerFlag.find(std::string(markerName.c_str()))!=unphaseMarkerFlag.end()&&unphaseMarkerFlag[std::string(markerName.c_str())] == true)
-				markerindex = unphaseMarkerUIdx[std::string(markerName.c_str())];
+				markerindex = unphaseMarkerUIdx[std::string(markerName.c_str())];//index in ref vcf
 			else
 				continue;
 			//int AFidx = pMarker->asInfoKeys.Find("AF");
